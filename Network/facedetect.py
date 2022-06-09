@@ -4,6 +4,7 @@ import numpy as np
 
 cv2.ocl.setUseOpenCL(False)
 
+# Simple script  facedetection using opencv cascade classifier
 def find_faces(img, feature_file='Network/res/haarcascade_frontalface_default.xml'):
 	DETECTION_PARAMS = feature_file
 
