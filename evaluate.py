@@ -35,9 +35,7 @@ if __name__=="__main__":
 	filename = None
 	if len(argv) > 5:
 		filename = argv[5]
-		print(filename)
-		if filename:
-			print("YES FILENAME!")
+		print(filename)	
 
 	model = k.models.load_model(MODEL, custom_objects={'relu6':relu6})
 	model.compile()

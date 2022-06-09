@@ -1,8 +1,6 @@
 import tensorflow as tf
 import numpy as np
-
-from Datagenerator.dataset import LSTMDataset_new, LSTMDataset_V3, LSTMDataset
-
+from Datagenerator.dataset import LSTMDataset_V3
 from keras.layers import Input
 from keras.models import Model
 from Network.mobile3model import get_keras_model
@@ -12,9 +10,6 @@ import tqdm
 from datetime import datetime as t
 import time
 
-from Evaluation.evaluate_predictions import prediction_evaluater, apply_homogenous_tform
-from Evaluation.icp import icp
-
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
 config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
@@ -23,31 +18,32 @@ BATCH_SIZE = 5
 N_IMAGES = 8
 SHAPE = (N_IMAGES, 256, 256, 3)
 
-training_generator = LSTMDataset_V3('Dataset/BU4DFE/Downsampled/Training', images=N_IMAGES, batch_size=BATCH_SIZE, N=2**14)
-testing_generator = LSTMDataset_V3('Dataset/BU4DFE/Downsampled/Testing', images=N_IMAGES, batch_size=BATCH_SIZE, N=2**14)
+TRAINING_PATH = 'Dataset/BU4DFE/Training'
+TESTING_PATH = 'Dataset/BU4DFE/Testing'
+
+training_generator = LSTMDataset_V3(
+	TRAINING_PATH, images=N_IMAGES, batch_size=BATCH_SIZE, N=2**14)
+testing_generator = LSTMDataset_V3(
+	TESTING_PATH, images=N_IMAGES, batch_size=BATCH_SIZE, N=2**14)
 
 print("Initializing model")
 
 SQUEEZE_AND_EXCITE = True
-
 model = get_keras_model(SHAPE, N=2**14, squeeze=SQUEEZE_AND_EXCITE)
 
 print("Model initialized")
 
 EPOCHS = 300
-
 lr = 0.0001
 
 opt = keras.optimizers.Adam(learning_rate=lr)
 loss = keras.losses.MeanSquaredError()
 
-evaluation_metric = prediction_evaluater()
-
 best_loss = float('inf')
 best_train = float('inf')
 savepath = 'model.h5'
-counter = 0
-THRESHOLD = 30
+counter = 0		# Counter for keeping track of non improving epochs
+THRESHOLD = 30	# Threshold for early stopping
 
 for epoch in range(EPOCHS):
 	total_training_loss = 0.0
@@ -71,7 +67,10 @@ for epoch in range(EPOCHS):
 	stop = time.time()
 	d = stop-start
 	total_training_loss /= len(training_generator)
-	print(f"Finished epoch {epoch+1}\nFinal loss: {float(total_training_loss)}\nFinished at {t.now().strftime('%H:%M:%S')}")
+	
+	print(f"""Finished epoch {epoch+1}
+		Final loss: {float(total_training_loss)}
+		Finished at {t.now().strftime('%H:%M:%S')}""")
 	
 	training_generator.on_epoch_end()
 
@@ -89,12 +88,6 @@ for epoch in range(EPOCHS):
 
 		total_validation_loss += loss_value
 
-		# if epoch != 0 and epoch % 10 == 0:
-		# 	metric += evaluation_metric(np.array(logits[0]), np.array(Y[0]))
-
-	# if epoch != 0 and epoch % 10 == 0:
-	# 	metric /= len(testing_generator)
-
 	total_validation_loss /= len(testing_generator)
 	
 	print(f"Average validation loss epoch {epoch+1}: {float(total_validation_loss)}")
@@ -107,7 +100,6 @@ for epoch in range(EPOCHS):
 		file.write(f'Finished after {d} seconds\n')
 		file.write(f'Average training loss: {total_training_loss}\n')
 		file.write(f'Average validation loss: {total_validation_loss}\n\n')
-		# file.write(f'Average validation NME: {float(metric)}\n\n' if epoch != 0 and epoch % 10 == 0 else '\n')
 
 	
 	if epoch > 0 and epoch % 10 == 0:
@@ -120,12 +112,14 @@ for epoch in range(EPOCHS):
 		best_loss = total_validation_loss
 		model.save(savepath)
 		counter = 0
+	# Have not been able to keep the model from overfitting
+	# Save additional model based off of training loss
 	elif total_training_loss < best_train:
 		print("Training loss improved. Saving train model")
 		counter = 0
 		best_train = total_training_loss
 		model.save("trainmodel.h5")
-	else:	# Early stopping if loss does not improve in 5 epochs
+	else:	# Early stopping if loss does not improve in THRESHOLD epochs
 		counter += 1
 		if counter >= THRESHOLD:
 			print(f"Early stopping at epoch {epoch+1}. Loss not improved in {THRESHOLD} epochs.")
