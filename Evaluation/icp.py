@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
+# Original code found at https://github.com/ClayFlannigan/icp/blob/master/icp.py
 
 def best_fit_transform(A, B):
     '''

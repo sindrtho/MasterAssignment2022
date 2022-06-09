@@ -1,13 +1,15 @@
 import argparse
 import glob
 import os
-
 import numpy as np
 from scipy.spatial import distance
 from sklearn.neighbors import KDTree
-
 from Evaluation.icp import icp
 
+
+# Original code found on
+# https://github.com/olalium/face-reconstruction/blob/master/Evaluation/evaluate_predicitons.py
+# Slightly adapted to current work
 
 def apply_homogenous_tform(tform, vertices):
     n, m = vertices.shape
@@ -15,22 +17,6 @@ def apply_homogenous_tform(tform, vertices):
     vertices_affine[:, :3] = vertices.copy()
     vertices = np.dot(tform, vertices_affine.T).T
     return vertices[:, :3]
-
-
-# def get_vertices_from_obj(obj_path):
-#     with open(obj_path) as f:
-#         lines = f.readlines()
-#     vertices = [line for line in lines if line.startswith('v ')]
-#     vertices = strip_obj_string(vertices)
-#     return vertices
-
-
-# def strip_obj_string(lines):
-#     array = np.zeros((len(lines), 3))
-#     for i, line in enumerate(lines):
-#         sub_array = np.array(line[2:].split(' ')).astype(np.float32)[:3]
-#         array[i] = sub_array
-#     return array
 
 
 class prediction_evaluater:
@@ -58,10 +44,6 @@ class prediction_evaluater:
         aligned_predicted_vertices = apply_homogenous_tform(tform, predicted_vertices)
         aligned_original_vertices = apply_homogenous_tform(tform, original_predicted_vertices)
 
-        # if save_vertices:
-        #     colors = np.ones((aligned_original_vertices.shape))
-        #     write_obj_with_colors(save_output, aligned_original_vertices, self.triangles, colors)
-
         error = self.nmse(aligned_original_vertices, original_f_vertices)
         return error
 
@@ -83,55 +65,3 @@ class prediction_evaluater:
         nmse = np.mean(error_array) / normalization_factor
         print(nmse)
         return nmse
-
-
-# def evaluate_predictions(args):
-#     evaluater = prediction_evaluater()
-
-#     obj_paths = []
-#     for subject in os.listdir(args.florence_path):
-#         for obj_file in glob.glob(args.florence_path + '/' + subject + '/*.obj'):
-#             obj_name = obj_file.split('/')[-1]
-#             if 'front' in obj_name and 'subject' not in obj_name:
-#                 predicted_obj_path = obj_file
-#             elif 'front' not in obj_name:
-#                 gt_obj_file_path = obj_file
-#         alignment_data_path = glob.glob(args.florence_path + '/' + subject + '/pose.txt')[0]
-#         obj_paths.append([gt_obj_file_path, predicted_obj_path, alignment_data_path])
-
-#     errors = []
-#     for paths in obj_paths:
-#         print(paths[0])
-#         florence_vertices = get_vertices_from_obj(paths[0])
-#         predicted_vertices = get_vertices_from_obj(paths[1])
-#         alignment_data = np.loadtxt(fname=paths[2])
-#         error = evaluater(predicted_vertices, florence_vertices, alignment_data=alignment_data, save_vertices=True)
-#         errors.append(error)
-#     # errors.append(sum(errors) / len(errors))
-#     errors = np.array(errors)
-#     np.savetxt(args.save_file, errors)
-#     return
-#     '''
-
-#     vertices_array = get_vertices_from_obj('../Data/Florence_with_predicted/front.obj')
-#     vertices_array_two = get_vertices_from_obj('../Data/Florence_with_predicted/front_two.obj')
-#     vertices_array_two_latest = get_vertices_from_obj('../Data/Florence_with_predicted/front_two_latest.obj')
-#     vertices_array_gt = get_vertices_from_obj('../Data/Florence_with_predicted/florence.obj')
-#     init_align = np.array([[1, 0, 0, -200],
-#                 [0, 1, 0, -200],
-#                 [0, 0, 1, -50],
-#                 [0, 0, 0, 1],
-#                 [0.5, 0.5, 0.5 ,0.5]])
-#     evaluater(vertices_array, vertices_array_gt, save_vertices = True, alignment_data = init_align)
-#     evaluater(vertices_array_two, vertices_array_gt, save_vertices = True, alignment_data = init_align)
-#     evaluater(vertices_array_two_latest, vertices_array_gt, save_vertices = True, alignment_data = init_align)
-#     '''
-
-
-# if __name__ == '__main__':
-#     par = argparse.ArgumentParser(description='Network Evaluation')
-#     par.add_argument('--florence_path', default='../Data/Florence/files.txt', type=str,
-#                      help='The path to the florence dataset description file')
-#     par.add_argument('--save_file', default='./evaluation_results.txt', type=str,
-#                      help='The path to the file where the results are saved')
-#     evaluate_predictions(par.parse_args())
