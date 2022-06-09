@@ -5,12 +5,14 @@ import os
 import tqdm
 import shutil
 
-PATH = 'Dataset/BU4DFE/Testing/'
-TARGET = 'Dataset/BU4DFE/Preprocessed/Testing/'
+# Change to correct path
+# PATH = 'Dataset/BU4DFE/'
+# TARGET = 'Dataset/BU4DFE/Preprocessed/'
 
 if not os.path.exists(TARGET):
  os.mkdir(TARGET)
 
+# FOLDERS includes all folders containing facial images and a single ground truth .ply file
 FOLDERS = os.listdir(PATH)
 
 for folder in FOLDERS:
